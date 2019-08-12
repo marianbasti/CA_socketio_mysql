@@ -1,0 +1,148 @@
+
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO NOTAS</title>
+    <style>
+      html {
+        background-color: black;
+        color: white;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      form input { border: 0; padding: 10px; width: 20%; margin-right: .5%; }
+      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 100px; }
+      #reg {
+        text-align: center;
+        margin: 0 auto;
+        font-size: 30px;
+        border: 2px solid white;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="reg">
+      <table style="text-align:left">
+        <tr>
+          <td style="text-align:left">PIANO</td>
+          <td id="instrumento0"></td>
+        </tr>
+        <tr>
+          <td style="text-align:left">CUERDAS</td>
+          <td id="instrumento1"></td>
+        </tr>
+        <tr>
+          <td style="text-align:left"  >BATA</td>
+          <td id="instrumento2"></td>
+        </tr>
+    </div>
+    <div id='timer'></div>
+    <form name="send" action="" onsubmit="setTimer()">
+      <select id="n">
+        <option value="C">C</option>
+        <option value="D">D</option>
+        <option value="E">E</option>
+        <option value="F">F</option>
+        <option value="G">G</option>
+        <option value="A">A</option>
+        <option value="B">B</option>
+      </select>
+      <select id="i">
+        <option value="0">Piano</option>
+        <option value="1">Cuerdas</option>
+        <option value="2">Bata</option>
+      </select>
+      <input id="boton" type="submit" value="Go" ></input>
+    </form>
+    <form name="borrar_todo" action="">
+      <div>
+        <input type="submit" value='borrar todo'></input>
+      </div>
+    </form>
+  </body>
+
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="../index.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+
+
+
+    <script>
+
+    //TIMER para limitar votos
+    var countdown = 5;
+    function setTimer() {
+      document.getElementById('timer').style.visibility = 'visible';
+      document.getElementById('boton').disabled = true;
+      document.getElementById('timer').innerHTML = countdown;
+      if (countdown>0) {
+        setTimeout(setTimer, 1000);
+        countdown--;
+      } else {
+        document.getElementById('boton').disabled = false;
+        countdown = 5;
+        document.getElementById('timer').style.visibility = 'hidden';
+      }
+    }
+
+    //Reproductor MIDI
+
+    /*	MIDI.loadPlugin({
+    		soundfontUrl: "./soundfont/",
+    		instrument: "acoustic_grand_piano",
+    		onprogress: function(state, progress) {
+    			console.log(state, progress);
+    		},
+    		onsuccess: function() {
+    			var delay = 0; // play one note every quarter second
+    			var note = 50; // the MIDI note
+    			var velocity = 127; // how hard the note hits
+    			// play the note
+    			MIDI.setVolume(0, 127);
+    			MIDI.noteOn(0, note, velocity, delay);
+    			MIDI.noteOff(0, note, delay + 0.75);
+    		}
+    	});
+*/
+
+
+    //Funciones Socket.IO
+      $(function () {
+        var socket = io();
+
+        //EMITIR NOTA
+        $('form[name="send"]').submit(function(e){
+          e.preventDefault(); // prevents page reloading
+          socket.emit('send_nota', {nota: $('#n').val(), instrumento: $('#i').val()});
+          return false;
+        });
+
+        //BORRAR DB
+        $('form[name="borrar_todo"]').submit(function(e){
+          socket.emit('borrartodo', 'BORRAR BASE DE DATOS');
+          window.location.reload();
+          return false;
+        });
+
+        //LLENO LA TABLA CON LA BASE DE DATOS
+        socket.on('populate', function(datos_db){
+          if (typeof datos_db[0] != 'undefined'){
+            for (var i = 0; i<datos_db.length; i++) {
+              $('#instrumento' + datos_db[i].id_instrumento).append(datos_db[i].registro);
+            };
+          };
+        });
+
+
+        //AGREGAR NOTA A LA TABLA UNA VEZ PROCESADO POR EL SERVIDOR
+        socket.on('add_nota', function(msg){
+          $('#instrumento' + msg.instrumento).append(msg.nota);
+        });
+      });
+
+    </script>
+  </body>
+</html>
